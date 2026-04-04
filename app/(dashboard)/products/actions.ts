@@ -39,7 +39,7 @@ export async function createProduct(formData: FormData) {
   });
 
   if (!parsed.success) {
-    return { error: parsed.error.errors[0].message };
+    return { error: parsed.error.issues[0].message };
   }
 
   const slug = slugify(`${parsed.data.modelCode}-${parsed.data.name}`, {
@@ -87,7 +87,7 @@ export async function updateProduct(id: string, formData: FormData) {
   });
 
   if (!parsed.success) {
-    return { error: parsed.error.errors[0].message };
+    return { error: parsed.error.issues[0].message };
   }
 
   const slug = slugify(`${parsed.data.modelCode}-${parsed.data.name}`, {

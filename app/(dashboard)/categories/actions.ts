@@ -17,7 +17,7 @@ export async function createCategory(formData: FormData) {
   });
 
   if (!parsed.success) {
-    return { error: parsed.error.errors[0].message };
+    return { error: parsed.error.issues[0].message };
   }
 
   const slug = slugify(parsed.data.name, { lower: true, strict: true });
@@ -46,7 +46,7 @@ export async function updateCategory(id: string, formData: FormData) {
   });
 
   if (!parsed.success) {
-    return { error: parsed.error.errors[0].message };
+    return { error: parsed.error.issues[0].message };
   }
 
   const slug = slugify(parsed.data.name, { lower: true, strict: true });

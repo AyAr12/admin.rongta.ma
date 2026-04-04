@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const ALLOWED_ORIGINS = [
+  "https://rongtama.netlify.app",
+  "https://www.rongtama.netlify.app",
   "https://rongta.ma",
   "https://www.rongta.ma",
   "http://localhost:3000",
