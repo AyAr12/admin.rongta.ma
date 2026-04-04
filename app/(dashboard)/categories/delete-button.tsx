@@ -1,0 +1,84 @@
+"use client";
+
+import { useState, useTransition } from "react";
+import { Trash2, AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { deleteCategory } from "./actions";
+
+export default function DeleteCategoryButton({
+  id,
+  name,
+  hasProducts,
+  hasChildren,
+}: {
+  id: string;
+  name: string;
+  hasProducts: boolean;
+  hasChildren: boolean;
+}) {
+  const [confirm, setConfirm] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  function handleDelete() {
+    setError(null);
+    startTransition(async () => {
+      const result = await deleteCategory(id);
+      if (result?.error) {
+        setError(result.error);
+        setConfirm(false);
+      }
+    });
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center gap-1.5 text-xs text-red-600">
+        <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+        <span>{error}</span>
+        <button
+          onClick={() => setError(null)}
+          className="ml-1 underline hover:no-underline"
+        >
+          OK
+        </button>
+      </div>
+    );
+  }
+
+  if (confirm) {
+    return (
+      <div className="flex items-center gap-1.5">
+        <span className="text-xs text-muted-foreground">Supprimer ?</span>
+        <Button
+          variant="destructive"
+          size="icon"
+          className="h-7 w-7"
+          onClick={handleDelete}
+          disabled={isPending}
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 text-xs"
+          onClick={() => setConfirm(false)}
+        >
+          Non
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={() => setConfirm(true)}
+      className="text-muted-foreground hover:text-red-600"
+    >
+      <Trash2 className="h-4 w-4" />
+    </Button>
+  );
+}
