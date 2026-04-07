@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { corsPreflightResponse, withCors } from "@/lib/cors";
+
+export async function OPTIONS(req: NextRequest) {
+  return corsPreflightResponse(req);
+}
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -52,13 +57,11 @@ export async function GET(req: NextRequest) {
     prisma.product.count({ where }),
   ]);
 
-  return NextResponse.json({
-    data: products,
-    pagination: {
-      page,
-      limit,
-      total,
-      totalPages: Math.ceil(total / limit),
-    },
-  });
+  return withCors(
+    req,
+    NextResponse.json({
+      data: products,
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    })
+  );
 }

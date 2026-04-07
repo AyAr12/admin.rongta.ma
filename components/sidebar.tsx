@@ -11,6 +11,7 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  Building2,
 } from "lucide-react";
 import { useState } from "react";
 import { signOut } from "next-auth/react";
@@ -30,6 +31,11 @@ const navItems = [
     label: "Catégories",
     href: "/categories",
     icon: FolderTree,
+  },
+  {
+    label: "Revendeurs",
+    href: "/resellers",
+    icon: Building2,
   },
   {
     label: "Paramètres",

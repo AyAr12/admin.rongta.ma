@@ -113,7 +113,7 @@ export default async function DashboardPage() {
               className="w-full justify-start gap-2"
               size="sm"
             >
-              <Link href="/categories/nouveau">
+              <Link href="/categories/new">
                 <FolderTree className="h-4 w-4" />
                 Ajouter une catégorie
               </Link>

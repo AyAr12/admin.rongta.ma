@@ -2,8 +2,9 @@
 
 import { useState, useRef } from "react";
 import { Upload, X, Loader2, ImageIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
+import { useDropzone } from "@/hooks/use-dropzone";
+import { cn } from "@/lib/utils";
 
 export default function CoverImage({
   productId,
@@ -15,12 +16,22 @@ export default function CoverImage({
   const [currentImage, setCurrentImage] = useState<string | null>(image);
   const [uploading, setUploading] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
-  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  async function uploadFile(file: File) {
+    setError(null);
+
+    if (!file.type.match(/^image\/(jpeg|jpg|png|webp)$/)) {
+      setError("Format non supporté. Utilisez JPG, PNG ou WebP.");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Le fichier ne doit pas dépasser 5 Mo.");
+      return;
+    }
 
     setUploading(true);
     try {
@@ -36,17 +47,26 @@ export default function CoverImage({
 
       const data = await res.json();
       if (data.error) {
-        alert(data.error);
+        setError(data.error);
       } else {
         setCurrentImage(data.url);
         router.refresh();
       }
     } catch {
-      alert("Erreur lors de l'upload");
+      setError("Erreur lors de l'upload");
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
+  }
+
+  const { isDragging, dropzoneProps } = useDropzone((files) => {
+    if (files[0]) uploadFile(files[0]);
+  });
+
+  function handleFileInput(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) uploadFile(file);
   }
 
   async function handleDelete() {
@@ -55,22 +75,18 @@ export default function CoverImage({
       const res = await fetch("/api/upload/delete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          productId,
-          imageUrl: currentImage,
-          type: "cover",
-        }),
+        body: JSON.stringify({ productId, imageUrl: currentImage, type: "cover" }),
       });
 
       const data = await res.json();
       if (data.error) {
-        alert(data.error);
+        setError(data.error);
       } else {
         setCurrentImage(null);
         router.refresh();
       }
     } catch {
-      alert("Erreur lors de la suppression");
+      setError("Erreur lors de la suppression");
     } finally {
       setDeleting(false);
     }
@@ -78,18 +94,43 @@ export default function CoverImage({
 
   return (
     <div className="space-y-2">
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+          {error}
+        </div>
+      )}
+
       {currentImage ? (
-        <div className="group relative w-full aspect-[16/9] rounded-xl border border-border overflow-hidden bg-muted">
+        <div
+          {...dropzoneProps}
+          className={cn(
+            "group relative w-full aspect-[16/9] rounded-xl border border-border overflow-hidden bg-muted transition-all",
+            isDragging && "border-[#FF6400] border-2 ring-4 ring-orange-100"
+          )}
+        >
           <img
             src={currentImage}
             alt="Cover"
             className="h-full w-full object-cover"
           />
+
+          {/* Drag overlay */}
+          {isDragging && (
+            <div className="absolute inset-0 bg-orange-50/90 flex flex-col items-center justify-center pointer-events-none z-10">
+              <Upload className="h-10 w-10 text-[#FF6400] mb-2" />
+              <p className="text-sm font-medium text-[#FF6400]">
+                Déposez pour remplacer
+              </p>
+            </div>
+          )}
+
+          {/* Hover overlay */}
           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
+
           <button
             onClick={handleDelete}
             disabled={deleting}
-            className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 disabled:opacity-50"
+            className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 disabled:opacity-50 z-20"
           >
             {deleting ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -97,28 +138,50 @@ export default function CoverImage({
               <X className="h-4 w-4" />
             )}
           </button>
+
           <div className="absolute left-2 bottom-2 rounded-md bg-black/60 px-2 py-0.5 text-xs text-white opacity-0 group-hover:opacity-100 transition-opacity">
             Image de couverture
           </div>
         </div>
       ) : (
         <div
+          {...dropzoneProps}
           onClick={() => fileInputRef.current?.click()}
-          className="flex flex-col items-center justify-center w-full aspect-[16/9] rounded-xl border-2 border-dashed border-border cursor-pointer hover:border-muted-foreground/50 transition-colors bg-muted/30"
+          className={cn(
+            "flex flex-col items-center justify-center w-full aspect-[16/9] rounded-xl border-2 border-dashed cursor-pointer transition-all",
+            isDragging
+              ? "border-[#FF6400] bg-orange-50 scale-[1.01]"
+              : "border-border hover:border-muted-foreground/50 bg-muted/30"
+          )}
         >
           {uploading ? (
-            <Loader2 className="h-8 w-8 text-muted-foreground/40 animate-spin mb-2" />
+            <>
+              <Loader2 className="h-10 w-10 text-[#FF6400] animate-spin mb-3" />
+              <span className="text-sm font-medium text-muted-foreground">
+                Upload en cours...
+              </span>
+            </>
+          ) : isDragging ? (
+            <>
+              <Upload className="h-10 w-10 text-[#FF6400] mb-3" />
+              <span className="text-sm font-medium text-[#FF6400]">
+                Déposez l&apos;image ici
+              </span>
+            </>
           ) : (
-            <ImageIcon className="h-8 w-8 text-muted-foreground/40 mb-2" />
+            <>
+              <ImageIcon className="h-10 w-10 text-muted-foreground/40 mb-3" />
+              <span className="text-sm font-medium text-muted-foreground">
+                Glissez-déposez une image
+              </span>
+              <span className="text-xs text-muted-foreground/60 mt-1">
+                ou cliquez pour parcourir
+              </span>
+              <span className="text-xs text-muted-foreground/60 mt-3">
+                JPG, PNG ou WebP · Max 5 Mo
+              </span>
+            </>
           )}
-          <span className="text-sm font-medium text-muted-foreground">
-            {uploading
-              ? "Upload en cours..."
-              : "Ajouter une image de couverture"}
-          </span>
-          <span className="text-xs text-muted-foreground/60 mt-1">
-            JPG, PNG ou WebP · Max 5 Mo
-          </span>
         </div>
       )}
 
@@ -126,7 +189,7 @@ export default function CoverImage({
         ref={fileInputRef}
         type="file"
         accept="image/jpeg,image/png,image/webp"
-        onChange={handleUpload}
+        onChange={handleFileInput}
         className="hidden"
       />
     </div>
