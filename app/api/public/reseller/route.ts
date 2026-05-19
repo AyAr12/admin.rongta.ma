@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { z } from "zod";
 import { withCors, corsPreflightResponse } from "@/lib/cors";
+import { sendResellerNotification } from "@/lib/email";
 
 const schema = z.object({
   companyName: z.string().min(2, "Le nom de la société est requis"),
@@ -36,6 +37,14 @@ export async function POST(req: NextRequest) {
         email: parsed.data.email || null,
         notes: parsed.data.notes || null,
       },
+    });
+
+    // Send email notification to admin (non-blocking)
+    await sendResellerNotification({
+      companyName: parsed.data.companyName,
+      phone: parsed.data.phone,
+      email: parsed.data.email || null,
+      notes: parsed.data.notes || null,
     });
 
     return withCors(

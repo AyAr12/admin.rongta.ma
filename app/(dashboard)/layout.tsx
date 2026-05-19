@@ -1,4 +1,6 @@
 import { auth } from "@/lib/auth-helpers";
+import { redirect } from "next/navigation";
+import prisma from "@/lib/prisma";
 import Sidebar from "@/components/sidebar";
 import AdminHeader from "@/components/admin-header";
 
@@ -9,9 +11,17 @@ export default async function DashboardLayout({
 }) {
   const session = await auth();
 
+  if (!session?.user) {
+    redirect("/login");
+  }
+
+  const pendingResellers = await prisma.resellerRequest.count({
+    where: { status: "pending" },
+  });
+
   return (
     <div className="flex min-h-screen">
-      <Sidebar />
+      <Sidebar pendingResellers={pendingResellers} />
       <div className="flex flex-1 flex-col">
         <AdminHeader userName={session?.user?.name} />
         <main className="flex-1 p-6">{children}</main>

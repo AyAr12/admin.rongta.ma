@@ -36,6 +36,7 @@ const navItems = [
     label: "Revendeurs",
     href: "/resellers",
     icon: Building2,
+    badgeKey: "resellers" as const,
   },
   {
     label: "Paramètres",
@@ -44,9 +45,17 @@ const navItems = [
   },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({
+  pendingResellers = 0,
+}: {
+  pendingResellers?: number;
+}) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+
+  const badges: Record<string, number> = {
+    resellers: pendingResellers,
+  };
 
   return (
     <aside
@@ -78,25 +87,46 @@ export default function Sidebar() {
           const isActive =
             pathname === item.href ||
             (item.href !== "/" && pathname.startsWith(item.href));
+
+          const badgeCount = item.badgeKey ? badges[item.badgeKey] || 0 : 0;
+
           return (
             <Link
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors relative",
                 isActive
                   ? "bg-sidebar-accent text-sidebar-accent-foreground"
                   : "text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
               )}
               title={collapsed ? item.label : undefined}
             >
-              <item.icon
-                className={cn(
-                  "h-[18px] w-[18px] shrink-0",
-                  isActive && "text-[#FF6400]",
+              <div className="relative shrink-0">
+                <item.icon
+                  className={cn(
+                    "h-[18px] w-[18px]",
+                    isActive && "text-[#FF6400]",
+                  )}
+                />
+                {/* Badge on icon when collapsed */}
+                {collapsed && badgeCount > 0 && (
+                  <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                    {badgeCount > 99 ? "99+" : badgeCount}
+                  </span>
                 )}
-              />
-              {!collapsed && <span>{item.label}</span>}
+              </div>
+
+              {!collapsed && (
+                <>
+                  <span className="flex-1">{item.label}</span>
+                  {badgeCount > 0 && (
+                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[11px] font-bold text-white">
+                      {badgeCount > 99 ? "99+" : badgeCount}
+                    </span>
+                  )}
+                </>
+              )}
             </Link>
           );
         })}
